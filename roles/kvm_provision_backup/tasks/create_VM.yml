@@ -1,7 +1,7 @@
 - name: Copy base image to libvirt directory
   copy:
     dest: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2"
-    src: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2-bk01"
+    src: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2-bk"
     force: no
     remote_src: no
     mode: 0660

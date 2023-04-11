@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: phpapache-secret
+type: Opaque
+data:
+  SQL_PWD: cm9vdHBhc3N3b3Jk
+  SQL_USER: cm9vdA==
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: phpapache-config
+data:
+  SQL_SERVER: mysql-svc
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpapache-deploy
+  labels:
+    app: phpapache
+spec:
+  selector:
+    matchLabels:
+      app: phpapache
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: phpapache
+    spec:
+      containers:
+      - name: phpapache
+        image: deniscp/demo:latest
+        envFrom:
+        - secretRef:
+            name: phpapache-secret
+        - configMapRef:
+            name: phpapache-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: phpapache
+  name: phpapache-svc
+spec:
+  type: NodePort
+  ports:
+  - nodePort: 30081
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: phpapache

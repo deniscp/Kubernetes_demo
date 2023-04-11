@@ -1,0 +1,24 @@
+---
+# tasks file for client_provision
+
+
+- name: Configure Kubernetes user node image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ guests[0].host_name }}.qcow2 \
+    --mkdir '/root/dispatched/user/' \
+    --upload '{{ role_path }}/files/user/02-dispatch_user_node:/etc/NetworkManager/dispatcher.d/02-dispatch_user_node' \
+    --run-command "chown root:root /etc/NetworkManager/dispatcher.d/02-dispatch_user_node" \
+    --chmod '0700:/etc/NetworkManager/dispatcher.d/02-dispatch_user_node' \
+    --upload '{{ role_path }}/files/user/new_user.sh:/root/dispatched/user/new_user.sh' \
+    --run-command "chown root:root /root/dispatched/user/new_user.sh" \
+    --chmod '0700:/root/dispatched/user/new_user.sh' \
+    --mkdir '/root/dispatched/user/demo/' \
+    --upload '{{ role_path }}/files/demo/deployment.sh:/root/dispatched/user/demo/deployment.sh' \
+    --chmod '0700:/root/dispatched/user/demo/deployment.sh' \
+    --upload '{{ role_path }}/files/demo/mysql-resources.yaml:/root/dispatched/user/demo/mysql-resources.yaml' \
+    --chmod '0600:/root/dispatched/user/demo/mysql-resources.yaml' \
+    --upload '{{ role_path }}/files/demo/php_apache-resources.yaml:/root/dispatched/user/demo/php_apache-resources.yaml' \
+    --chmod '0600:/root/dispatched/user/demo/php_apache-resources.yaml' \
+    --upload '{{ role_path }}/files/demo/php_my_admin-resources.yaml:/root/dispatched/user/demo/php_my_admin-resources.yaml' \
+    --chmod '0600:/root/dispatched/user/demo/php_my_admin-resources.yaml'
+  become: yes

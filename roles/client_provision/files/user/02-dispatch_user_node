@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+set -e
+
+interface="${1}"
+action="${2}"
+
+BASE_PATH="/root/dispatched/user"
+
+
+if [[ "$action" == "up" ]]  && [[ "$interface" == "eth0" ]]; then
+    "$BASE_PATH/new_user.sh" 1>> "$BASE_PATH/new_user_stdout.log" 2>> "$BASE_PATH/new_user_stderr.log"
+    echo "$?" > "$BASE_PATH/new_user_exit-status.log"
+    chmod a-x $0
+fi
+
+
+exit 0

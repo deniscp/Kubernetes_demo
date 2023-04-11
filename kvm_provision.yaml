@@ -34,6 +34,9 @@
     - name: Kubernetes Provision role
       include_role:
         name: kubernetes_provision
+    - name: Provision client demo app
+      include_role:
+        name: client_provision
     - name: Ensure VMs are started
       community.libvirt.virt:
         name: "{{ guest.host_name }}"

@@ -12,3 +12,15 @@ The latter can be obtained starting from an already provisioned linux KVM/QEMU V
 ```
 virsh dumpxml <linux_domain_name> > vm-template.xml
 ```
+
+============
+
+The app consists of a MySQL instance, a phpMyAdmin administration tool and an Apache web server with PHP.
+After the Kubernetes cluster is up and running (which can take some minutes), the demo app can be reached from a browser:
+
+
+http://192.168.100.2:30080/
+for phpMyAdmin
+
+http://192.168.100.2:30081/
+for the Apache hello world connecting to the DB
