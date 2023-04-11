@@ -1,0 +1,39 @@
+- name: Copy base image to libvirt directory
+  copy:
+    dest: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2"
+    src: "{{ image_directory }}/{{ image_base_name }}.qcow2"
+    force: no
+    remote_src: no
+    mode: 0660
+  register: copy_results
+  become: yes
+
+- name: Build the NetworkManager configuration template
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/connections/Wired connection 1.nmconnection.j2"
+    dest: "{{ role_path }}/templates/tmp/Wired connection 1.nmconnection"
+    mode: 0600
+    owner: root
+    group: root
+  become: yes
+  vars:
+   host_IP: "{{ guest.host_IP }}"
+
+
+- name: Configure the image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2 \
+    --hostname {{ guest.host_name }} \
+    --root-password password:{{ vm_root_pass }} \
+    --ssh-inject 'root:file:{{ ssh_keys_directory }}/id_rsa.pub' \
+    --upload '{{ role_path }}/templates/tmp/Wired connection 1.nmconnection:/etc/NetworkManager/system-connections/Wired connection 1.nmconnection' \
+    --uninstall cloud-init --selinux-relabel
+  when: copy_results is changed
+  become: yes
+
+- name: Define vm
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'VMs/vm-template.xml.j2') }}"
+  vars:
+    vm_name: "{{ guest.host_name }}"

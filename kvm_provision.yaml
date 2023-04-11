@@ -1,0 +1,47 @@
+- name: Deploys VM cluster based on cloud image
+  hosts: localhost
+  gather_facts: yes
+  become: no
+  vars:
+    ssh_keys_directory: "{{ role_path }}/files/ssh_keys"
+    libvirt_pool_dir: "/var/lib/libvirt/images"
+    image_directory: "{{ role_path }}/files/vm_image"
+    image_url_path: "https://download.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/x86_64/images"
+    image_base_name: Fedora-Cloud-Base-37-1.7.x86_64
+    hash_url: "https://getfedora.org/static/checksums/37/images/Fedora-Cloud-37-1.7-x86_64-CHECKSUM"
+    signing_key_url: "https://getfedora.org/static/fedora.gpg"
+
+    vm_vcpus: 2
+    vm_ram_mb: 4096
+
+    net: default
+    net_gateway_IP: 192.168.100.1
+    net_dns_IP: "{{ net_gateway_IP }}"
+
+    guest_name: f37-dev
+    guests:
+      - host_name: "{{ guest_name }}-a"
+        host_IP: 192.168.100.2
+      - host_name: "{{ guest_name }}-b"
+        host_IP: 192.168.100.3
+      - host_name: "{{ guest_name }}-c"
+        host_IP: 192.168.100.4
+
+  tasks:
+    - name: KVM Provision role
+      include_role:
+        name: kvm_provision
+    - name: Kubernetes Provision role
+      include_role:
+        name: kubernetes_provision
+    - name: Ensure VMs are started
+      community.libvirt.virt:
+        name: "{{ guest.host_name }}"
+        state: running
+      register: vm_start_results
+      until: "vm_start_results is success"
+      retries: 15
+      delay: 2
+      loop: "{{ guests }}"
+      loop_control:
+        loop_var: guest

@@ -1,0 +1,11 @@
+[connection]
+id=Wired connection 1
+type=ethernet
+interface-name=eth0
+
+[ethernet]
+
+[ipv4]
+method=manual
+address1={{ host_IP }}/24,{{ net_gateway_IP }}
+dns={{ net_dns_IP }};

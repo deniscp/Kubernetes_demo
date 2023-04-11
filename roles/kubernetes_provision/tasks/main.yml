@@ -1,0 +1,76 @@
+---
+# tasks file for kubernetes_provision
+
+
+- name: Generate a temporary ssh_key used for joining the nodes
+  shell: echo 'yes' | ssh-keygen -f '{{ role_path }}/files/ssh_keys/tmp_kubeadm_join' -t ed25519 -N '' -C 'Temp key for "kubeadm join"'
+
+- name: Configure Kubernetes cluster node image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2 \
+    --ssh-inject 'root:file:{{ role_path }}/files/ssh_keys/tmp_kubeadm_join.pub' \
+    --mkdir '/root/dispatched/cluster-node/' \
+    --upload '{{ role_path }}/files/cluster_node/node.sh:/root/dispatched/cluster-node/node.sh' \
+    --run-command "chown root:root /root/dispatched/cluster-node/node.sh" \
+    --chmod '0700:/root/dispatched/cluster-node/node.sh' \
+    --upload '{{ role_path }}/files/cluster_node/00-dispatch_node:/etc/NetworkManager/dispatcher.d/00-dispatch_node' \
+    --run-command "chown root:root /etc/NetworkManager/dispatcher.d/00-dispatch_node" \
+    --chmod '0700:/etc/NetworkManager/dispatcher.d/00-dispatch_node'
+  become: yes
+  loop: "{{ guests }}"
+  loop_control:
+    loop_var: guest
+
+
+- name: Inizialize join_nodes variable
+  set_fact:
+    join_nodes: []
+
+- name: Add nodes to be joined to join_nodes variable
+  set_fact:
+    join_nodes: "{{ join_nodes }} + {{ [item.host_IP] }} "
+  with_items: "{{ guests[1:] }}"
+
+- name: Format join_nodes variable
+  set_fact:
+    join_nodes: "{{ join_nodes | join('|') }}"
+    b: "{{ join_nodes | length }}"
+
+
+- name: Configure Kubernetes control-plane node image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ guests[0].host_name }}.qcow2 \
+    --mkdir '/root/dispatched/control-plane/' \
+    --write '/root/dispatched/control-plane/join_nodes:{{ join_nodes }}' \
+    --upload '{{ role_path }}/files/control-plane/01-dispatch_control-plane_node:/etc/NetworkManager/dispatcher.d/01-dispatch_control-plane_node' \
+    --run-command "chown root:root /etc/NetworkManager/dispatcher.d/01-dispatch_control-plane_node" \
+    --chmod '0700:/etc/NetworkManager/dispatcher.d/01-dispatch_control-plane_node' \
+    --upload '{{ role_path }}/files/control-plane/control-plane_node.sh:/root/dispatched/control-plane/control-plane_node.sh' \
+    --run-command "chown root:root /root/dispatched/control-plane/control-plane_node.sh" \
+    --chmod '0700:/root/dispatched/control-plane/control-plane_node.sh' \
+    --upload '{{ role_path }}/files/control-plane/join_node.sh:/root/dispatched/control-plane/join_node.sh' \
+    --run-command "chown root:root /root/dispatched/control-plane/join_node.sh" \
+    --chmod '0700:/root/dispatched/control-plane/join_node.sh' \
+    --mkdir '/root/dispatched/control-plane/ssh_keys' \
+    --upload '{{ role_path }}/files/ssh_keys/tmp_kubeadm_join:/root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join' \
+    --run-command "chown root:root /root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join" \
+    --chmod '0600:/root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join' \
+    --upload '{{ role_path }}/files/ssh_keys/tmp_kubeadm_join.pub:/root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join.pub' \
+    --run-command "chown root:root /root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join.pub" \
+    --chmod '0600:/root/dispatched/control-plane/ssh_keys/tmp_kubeadm_join.pub' \
+    --mkdir '/root/dispatched/control-plane/CNI_plugins/' \
+    --upload '{{ role_path }}/files/CNI_plugins/tigera-operator.yaml:/root/dispatched/control-plane/CNI_plugins/tigera-operator.yaml' \
+    --run-command "chown root:root /root/dispatched/control-plane/CNI_plugins/tigera-operator.yaml" \
+    --chmod '0600:/root/dispatched/control-plane/CNI_plugins/tigera-operator.yaml' \
+    --upload '{{ role_path }}/files/CNI_plugins/custom-resources.yaml:/root/dispatched/control-plane/CNI_plugins/custom-resources.yaml' \
+    --run-command "chown root:root /root/dispatched/control-plane/CNI_plugins/custom-resources.yaml" \
+    --chmod '0600:/root/dispatched/control-plane/CNI_plugins/custom-resources.yaml'
+  become: yes
+
+
+- name: Temporary ssh_key used for joining the nodes are removed
+  file:
+    path: '{{ item }}'
+    state: absent
+  with_fileglob:
+    - "{{ role_path }}/files/ssh_keys/tmp_kubeadm_join*"

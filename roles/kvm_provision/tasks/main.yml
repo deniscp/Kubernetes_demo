@@ -1,0 +1,81 @@
+---
+# tasks file for kvm_provision
+- name: Ensure requirements in place
+  package:
+    name:
+      - libguestfs-tools
+      - python3-libvirt
+      - python3-lxml
+    state: present
+  become: yes
+
+- name: '"image_directory" is present'
+  file:
+    path: '{{ image_directory }}'
+    state: directory
+
+- name: '"ssh_keys_directory" is present'
+  file:
+    path: '{{ ssh_keys_directory }}'
+    state: directory
+
+- name: Fetch the distribution image
+  get_url:
+    url: '{{image_url_path}}/{{ image_base_name }}.qcow2'
+    dest: '{{ image_directory }}/{{ image_base_name }}.qcow2'
+    force: false
+
+- name: Fetch the distribution image checksum
+  get_url:
+    url: '{{ hash_url }}'
+    dest: '{{ image_directory }}/{{ image_base_name }}-CHECKSUM'
+    force: false
+
+- name: Fetch the distribution image signing public key
+  get_url:
+    url: '{{ signing_key_url }}'
+    dest: '{{ image_directory }}/fedora.gpg'
+    force: true
+
+- name: Verify the checksum signature
+  command: gpg --no-default-keyring --keyring '{{ image_directory }}/fedora.gpg' --verify -- '{{ image_directory }}/{{ image_base_name }}-CHECKSUM'
+  register: gpg_status
+  failed_when: gpg_status.rc != 0  #Explicitely set the default non-zero return code Ansible failure mode stopping executing with any signature verification failure
+
+- name: Verify the distribution image checksum
+  shell: grep '{{ image_base_name }}.qcow2' '{{ image_directory }}/{{ image_base_name }}-CHECKSUM' | sed 's;{{ image_base_name }};{{ image_directory }}/{{ image_base_name }};' | sha256sum -c -
+  register: sha256sum_status
+  failed_when: sha256sum_status.rc != 0  #Explicitely set the default non-zero return code Ansible failure mode stopping executing with checksum verification failure
+
+- name: Stat the SSH private key to access the VMs
+  stat:
+    path: '{{ ssh_keys_directory }}/id_rsa'
+  register: ssh_key
+
+- name: Generate SSH private/public key pair to access the VMs
+  shell: echo 'yes' | ssh-keygen -f '{{ ssh_keys_directory }}/id_rsa' -t rsa -b 3072 -N '' -C 'kvm_provision'
+  when: not ssh_key.stat.exists
+
+- name: Get VMs list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: templates/tmp/ is present
+  file:
+    path: '{{ role_path }}/templates/tmp/'
+    state: directory
+
+- name: Create VM if not exists
+  include_tasks: "create_VM.yml"
+  when: "guest.host_name not in existing_vms.list_vms"
+  loop: "{{ guests }}"
+  loop_control:
+    loop_var: guest
+
+- name: 'Clean "templates/tmp/Wired connection 1.nmconnection"'
+  file:
+    path: "{{ role_path }}/templates/tmp/Wired connection 1.nmconnection"
+    state: absent
+  become: yes

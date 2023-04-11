@@ -1,0 +1,3 @@
+/roles/kvm_provision/templates/tmp/
+/roles/kubernetes_provision/files/ssh_keys/
+/roles/kvm_provision/files/

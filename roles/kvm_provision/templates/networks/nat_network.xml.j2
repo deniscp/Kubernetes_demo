@@ -1,0 +1,17 @@
+<network>
+  <name>{{ net_domain_name }}</name>
+  <uuid>29b040e8-e500-4d24-b94a-a13a2670ad53</uuid>
+  <forward mode="nat">
+    <nat>
+      <port start="1024" end="65535"/>
+    </nat>
+  </forward>
+  <bridge name="virbr2" stp="on" delay="0"/>
+  <mac address="52:54:00:3b:fa:6b"/>
+  <domain name="{{ net_domain_name }}"/>
+  <ip address="{{ net_gateway_IP }}" netmask="255.255.255.0">
+    <dhcp>
+      <range start="{{ net_dhcp_start }}" end="{{ net_dhcp_end }}"/>
+    </dhcp>
+  </ip>
+</network>

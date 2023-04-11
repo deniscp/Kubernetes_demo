@@ -1,0 +1,17 @@
+#!/usr/bin/bash
+set -e
+
+interface="${1}"
+action="${2}"
+
+BASE_PATH="/root/dispatched/cluster-node"
+
+
+if [[ "$action" == "up" ]]  && [[ "$interface" == "eth0" ]]; then
+    "$BASE_PATH/node.sh" 1>> "$BASE_PATH/node_stdout.log" 2>> "$BASE_PATH/node_stderr.log"
+    echo "$?" > "$BASE_PATH/node_exit-status.log"
+    chmod a-x $0
+fi
+
+
+exit 0

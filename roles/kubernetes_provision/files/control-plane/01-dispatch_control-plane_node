@@ -1,0 +1,16 @@
+#!/usr/bin/bash
+set -e
+
+interface="${1}"
+action="${2}"
+
+BASE_PATH="/root/dispatched/control-plane"
+
+if [[ "$action" == "up" ]]  && [[ "$interface" == "eth0" ]]; then
+    "$BASE_PATH/control-plane_node.sh" 1>> "$BASE_PATH/control-plane_node_stdout.log" 2>> "$BASE_PATH/control-plane_node_stderr.log"
+    echo "$?" > "$BASE_PATH/control-plane_node_exit-status.log"
+    chmod a-x $0
+fi
+
+
+exit 0
