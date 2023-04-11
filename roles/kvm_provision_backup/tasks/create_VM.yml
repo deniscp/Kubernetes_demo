@@ -1,0 +1,16 @@
+- name: Copy base image to libvirt directory
+  copy:
+    dest: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2"
+    src: "{{ libvirt_pool_dir }}/{{ guest.host_name }}.qcow2-bk01"
+    force: no
+    remote_src: no
+    mode: 0660
+  register: copy_results
+  become: yes
+
+- name: Define vm
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'VMs/vm-template.xml.j2') }}"
+  vars:
+    vm_name: "{{ guest.host_name }}"

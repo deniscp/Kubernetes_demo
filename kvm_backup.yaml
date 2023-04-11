@@ -1,0 +1,38 @@
+- name: Deploys VM cluster based on cloud image
+  hosts: localhost
+  gather_facts: yes
+  become: no
+  vars:
+    libvirt_pool_dir: "/var/lib/libvirt/images"
+
+    vm_vcpus: 2
+    vm_ram_mb: 4096
+
+    net: default
+    net_gateway_IP: 192.168.100.1
+    net_dns_IP: "{{ net_gateway_IP }}"
+
+    guest_name: f37-dev
+    guests:
+      - host_name: "{{ guest_name }}-a"
+        host_IP: 192.168.100.2
+      - host_name: "{{ guest_name }}-b"
+        host_IP: 192.168.100.3
+      - host_name: "{{ guest_name }}-c"
+        host_IP: 192.168.100.4
+
+  tasks:
+    - name: Recover backups
+      include_role:
+        name: kvm_provision_backup
+    - name: Ensure VMs are started
+      community.libvirt.virt:
+        name: "{{ guest.host_name }}"
+        state: running
+      register: vm_start_results
+      until: "vm_start_results is success"
+      retries: 15
+      delay: 2
+      loop: "{{ guests }}"
+      loop_control:
+        loop_var: guest

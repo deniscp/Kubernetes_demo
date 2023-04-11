@@ -1,0 +1,15 @@
+---
+# tasks file for kvm_provision
+
+- name: Get VMs list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: Create VM if not exists
+  include_tasks: "create_VM.yml"
+  when: "guest.host_name not in existing_vms.list_vms"
+  loop: "{{ guests }}"
+  loop_control:
+    loop_var: guest
