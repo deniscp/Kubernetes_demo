@@ -2,6 +2,11 @@
 # tasks file for kubernetes_provision
 
 
+- name: files/ssh_keys/ is present
+  file:
+    path: '{{ role_path }}/files/ssh_keys/'
+    state: directory
+
 - name: Generate a temporary ssh_key used for joining the nodes
   shell: echo 'yes' | ssh-keygen -f '{{ role_path }}/files/ssh_keys/tmp_kubeadm_join' -t ed25519 -N '' -C 'Temp key for "kubeadm join"'
 
